@@ -454,28 +454,23 @@ registry:
 					</section>
 
 					<section>
-						<h2>Simple build script</h2>
-						<pre><code>#!/bin/bash 
+						<h2>Build, test, and push</h2>
+						<pre><code># Build script executed by Jenkins
 
-# Build image, run tests, and generate documentation
-make all
+# Build and run tests
+docker-compose build
+docker-compose run myapi nosetests
 
 # Where to push image
-IMAGE_PATH=localhost:5000/myapi:master-$BUILD_NUMBER
+IMAGE_LOCATION=localhost:5000/myapi:master-$BUILD_NUMBER
 
-# Push the image to our Docker registry
-docker tag myapi:latest $IMAGE_PATH
-docker push $IMAGE_PATH</code></pre>
+# Tag and push the image to our Docker registry
+docker tag myapi:latest $IMAGE_LOCATION
+docker push $IMAGE_LOCATION</code></pre>
 
                         <aside class="notes">
                             - Jenkins har plugins for å bygge og publisere Docker images, men det er nesten
                               vel så enkelt å gjøre det med et script
-                            - Dette er alt vi trenger å gjøre
-                            - Vi har allerede en make all target som bygger, kjører tester osv. som vi
-                              bruker ved utvikling lokalt
-                            - Denne kan vi gjenbruke her
-                            - Til slutt må vi kjøre docker tag for å tagge imaget vi har bygget, og docker
-                              push for å publisere imaget i Registry
                             - Ser at vi bruker branch og byggenummer som tag på imagene
                             - Her har vi hardkodet image og branch for hver jobb. For å gjøre det mer
                               generelt, kan man bruke navnet på byggejobben og byggenummer som tag. Da kan
