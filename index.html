@@ -478,28 +478,6 @@ docker push $IMAGE_LOCATION</code></pre>
                         </aside>
 					</section>
 
-					<section>
-						<h2>List tags in registry</h2>
-						<pre><code>
-$ curl http://localhost:5000/v2/myapi/tags/list
-{
-    "name": "myapi",
-    "tags": [
-        "master-1", 
-        "master-2",
-        "develop-3",
-        "develop-4",
-        ...
-    ]
-}
-                        </code></pre>
-
-                        <aside class="notes">
-                            - Registryet har et enkelt API som kan brukes for å liste alle tags for et
-                              image
-                        </aside>
-					</section>
-
 				</section>
 				<section>
 
