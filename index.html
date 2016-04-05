@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Continous Delivery with Docker and Jenkins</title>
+
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/black.css" id="theme">
+
+		<!-- Code syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+				<section>
+					<h2 style='margin-bottom: 30px'>Continuous Delivery with Docker and Jenkins</h2>
+				</section>
+
+				<section>
+					<h2>Agenda</h2>
+					<ol>
+						<li>Continuous Delivery</li>
+						<li>Docker basics</li>
+						<li>Local development</li>
+						<li>Build pipeline</li>
+						<li>Deployment</li>
+					</ol>
+				</section>
+
+				<section>
+
+					<section>
+						<h2>Continuous Delivery</h2>
+					</section>
+
+					<section>
+						<h2>Continuous Delivery</h2>
+						<ul>
+							<li>Short development cycles</li>
+							<li>Frequent, small releases</li>
+							<li>Simple, automated deployment</li>
+						</ul>
+						<p>Reduces cost, time, and risk of doing releases</p>
+
+                        <aside class="notes">
+                            - Tilnærming der man jobber i korte sykluser, og har hyppige leveranser av ny
+                              funksjonalitet
+                            - Man bryter ned arbeidet i små biter hvor hver bit gir litt økt verdi til
+                              brukerne
+                            - En forutsetning for dette er at man enkelt kunne rulle ut nye versjoner
+                              etterhvert som de er ferdige
+                            - Resultatet av denne tilnærmingen er redusert kostnad, tid og risiko når man
+                              skal rulle ut nye versjoner
+                        </aside>
+					</section>
+
+					<section>
+						<h2>Technology stack</h2>
+						<img src="images/stack.png" />
+
+                        <aside class="notes">
+                            - La oss si du har en teknologistack som ser slik ut
+                            - Vi har en webapplikasjon basert på node.js, et REST API skrevet i Python,
+                              hostes bak nginx webserver, postgres database, elasticsearch, og rabbitmq
+                              meldingskø
+                            - Hvordan kan man sørge for kontinuerlig leveranse her?
+                        </aside>
+					</section>
+
+					<section>
+						<h2>Some challenges</h2>
+						<ul>
+							<li>Many different technologies working together</li>
+							<li>The services make assumptions about the underlying infrastructure</li>
+							<li>Different build, test, packaging, and deployment routines</li>
+						</ul>
+
+                        <aside class="notes">
+                              - Mange teknologier/tjenester - mye å holde styr på
+                              - Tjenestene gjør en del antakelser om den underliggende infrastrukturen.
+                                F.eks. at et bibliotek må være installert på serveren, at en
+                                konfigurasjonsfil må finnes et gitt sted o.l. 
+                                  - Kan være vanskelig å få oversikt
+                                  - Fort gjort å introdusere små forskjeller i oppsett lokalt hos utviklernes
+                                    PCer og i ulike miljø (f.eks. feil versjon av et eller annet bibliotek) -
+                                    kan skape uforutsette problemer
+                              - Tjenestene har ulike rutiner for bygging, testing, pakking og deployment
+                                - F.eks. python vs node/npm
+                            - Alt dette øker kompleksiteten, og gir økt risiko for feilsituasjoner
+                            - Hvordan kan vi redusere risikoen og gjøre det enklere å holde styr på alle
+                              delene av systemet?
+                        </aside>
+					</section>
+
+				</section>
+
+				<section>
+
+					<section>
+						<h2>Docker</h2>
+					</section>
+
+					<section>
+						<h2>Docker</h2>
+						<ul>
+							<li>Platform for developing, shipping, and running applications in a standardized way</li>
+							<li>Separates applications from the underlying infrastructure by isolating them inside containers</li>
+							<li>Can be installed on Linux, OS X, and Windows</li>
+						</ul>
+
+                        <aside class="notes">
+                            - Her kommer Docker inn i bildet
+                            - Docker gir oss en standardisert plattform for utvikling, distribusjon og
+                              kjøring av applikasjoner
+                            - Docker separerer applikasjonene fra den underliggende infrastrukturen ved å
+                              isolere dem i containere 
+                            - Docker containere kan kjøres hvor som helst hvor Docker er installert
+                            - Docker kan installeres og kjøres på Linux, OS X og Windows
+                              - For øyeblikket må man ha Virtualbox på OS X og Windows, men har nettopp kommet 
+                                en betaversjon som gjør at du ikke trenger det lenger
+                        </aside>
+					</section>
+
+					<section>
+						<h2>Containers vs VMs</h2>
+						<img src="images/containers-vs-vms.png" />
+						<small>Source: Docker Inc.</small>
+
+                        <aside class="notes">
+                            - Har man et sett med virtuelle maskiner, så har hver VM sitt eget
+                              operativsystem
+                            - Containere kan dele host OS, men kjører likevel i sin egen isolerte boble
+                            - Sammenlignet med virtuelle maskiner, får man man mindre overhead,
+                              raskere restart osv.
+                        </aside>
+					</section>
+
+					<section>
+						<h2>Docker Hub</h2>
+						<img src="images/docker-hub.png" />
+
+                        <aside class="notes">
+                            - For å kunne starte en container, må man ha et image
+                            - Veldig enkelt kan man si at et image kan sammenlignes med en kjørbar fil som
+                              ligger på filsystemet
+                            - Starter man et image, får man en container med en prosess som kjører inni
+                            - Man kan finne mange ferdige images på Docker Hub
+                              - Hostet av Docker
+                              - Alle kan pushe og pulle images herfra
+                              - Noen images er offisielle
+                                - Laget av et team som er sponset av Docker
+                                - Anbefalt å bruke disse
+                                - Blir jevnlig oppdatert med nye versjoner og sikkerhetspatcher
+                        </aside>
+					</section>
+
+					<section>
+						<h2>Dockerfile</h2>
+						<pre><code>FROM python:2.7
+
+# Install Python packages
+RUN pip install gunicorn Flask
+
+# Add our own code to the image
+ADD . /code
+
+# The port where our application is listening
+EXPOSE 80
+
+# Run the application
+CMD ["bin/start.sh"]</code></pre>
+
+                        <aside class="notes">
+                            - Oppskriften for hva som skal være med i et image defineres
+                              i en såkalt Dockerfile
+                            - Øverst definerer man et base image som ofte er hentet fra Docker hub
+                            - Deretter en serie med instruksjoner, f.eks. installere avhengigheter
+                            - Til slutt defineres hvilken kommando som skal kjøres når man starter
+                              kontaineren
+                            - Instruksjonene blir cachet, så hvis du har bygd imaget en gang, og bygger på
+                              nytt senere, vil den hoppe over de stegene som allerede er gjort tidligere
+                            - Hvis man i dette tilfellet har endret noe kode i stående katalog, og bygger
+                              imaget på nytt, vil den f.eks. hoppe over installeringen av python-pakker
+                        </aside>
+
+					</section>
+
+					<section>
+						<h2>Docker compose</h2>
+
+						<ul>
+							<li>Tool for container configuration and orchestration</li>
+							<li>Containers are configured in a docker-compose.yml file</li>
+							<li>Simplifies building and running multiple containers</li>
+						</ul>
+
+                        <aside class="notes">
+                            - Docker har et verktøy som heter Docker Compose som lar deg konfigurere og
+                              orkestrere containere
+                            - Det gjøres via en docker-compose yaml fil
+                            - Når man har en slik fil, kan man bygge images og kjøre opp containere med én
+                              kommando
+                        </aside>
+					</section>
+
+					<section>
+						<h2>docker-compose.yml</h2>
+
+						<pre><code class="yaml">myapi:
+  build: .
+  volumes:
+    - .:/code
+  ports: 
+    - 8080:80
+  environment:
+    - DB_URL=postgresql://user:pw@database:5432/mydb
+  links:
+    - database
+database:
+  image: postgres:9.4
+  environment:
+    - POSTGRES_USER=user
+    - POSTGRES_PASSWORD=pw</code></pre>
+
+                        <aside class="notes">
+                            - Her er et eksempel på en docker-compose fil
+                            - Vi har en api container (myapi) og en database container
+                            - Vi ser at vi har definert build med et punktum
+                              - Det betyr at docker-compose skal bygge et image basert på Dockerfile i
+                                stående katalog - med mindre det allerede finnes et slikt image
+                            - Vi ser også at vi har angitt at stående katalog skal mappes inn i
+                              API-containeren, via volumes - dette vil man typisk gjøre når man utvikler
+                              - Slik at hvis man endrer noen filer på hosten, vil dette også reflekteres i
+                                containeren
+                            - Man kan også mappe opp porter, f.eks. her sier vi at trafikk som går mot port
+                              8080 på hosten skal rutes til port 80 i containeren
+                            - Api containeren er linket mot database-containeren, slik at den kan
+                              kommunisere med databasen
+                            - Finnes mange muligheter for konfigurasjon her
+                        </aside>
+					</section>
+
+					<section>
+						<h2>Docker compose usage</h2>
+
+						<pre><code>
+# Build and start all containers
+$ docker-compose up -d
+
+# List running containers
+$ docker-compose ps
+Name            Command              State     Ports
+-------------------------------------------------------------------
+myapi_myapi_1   bin/start.sh         Up        0.0.0.0:80->80/tcp
+myapi_db_1      postgres             Up        5432/tcp           
+						</code></pre>
+
+                        <aside class="notes">
+                            - Nå kan man starte alle containerne ved å skrive docker-compose up
+                            - Man kan også få en oversikt over kjørende containere med docker-compose ps
+                            - Man kan starte og stoppe containere hver for seg osv.
+                        </aside>
+					</section>
+
+				</section>
+
+				<section>
+
+					<section>
+						<h2>Local development</h2>
+					</section>
+
+					<section>
+						<h2>Running custom commands</h2>
+
+						<pre><code>
+# Syntax
+# docker-compose run &lt;service&gt; &lt;command&gt;
+
+# Run tests
+$ docker-compose run myapi run_tests.sh
+[...]
+Ran 17 tests in 0.009s
+						</code></pre>
+
+                        <aside class="notes">
+                            - Når du sitter og utvikler lokalt, vil du av og til kjøre andre kommandoer enn
+                              det som er definert som default i Dockerfile
+                            - For eksempel vil du kjøre en test-kommando for å kjøre enhetstester
+                            - Dette kan man gjøre ved å slenge på kommandoen bak docker-compose run, slik som 
+                              gjort her
+                        </aside>
+					</section>
+
+					<section>
+						<h2>Makefile for convenience</h2>
+
+						<pre><code class="makefile"># Makefile
+
+run:
+    docker-compose up -d
+
+tests: 
+    docker-compose run myapi run_tests.sh
+
+erdiagram:
+    docker-compose run myapi generate_diagram.sh
+
+validation:
+    docker-compose run myapi validate_code.sh
+
+all: tests validation erdiagram</code></pre>
+
+                        <aside class="notes">
+                            - Vi ble fort lei av å skrive disse kommandoene manuelt, så vi laget oss en
+                              Makefile med de mest vanlige kommanoene
+                        </aside>
+					</section>
+
+					<section>
+						<h2>Simple command interface</h2>
+
+						<pre><code>
+# Run the application
+$ make run
+
+# Run tests
+$ make tests
+
+# Run tests, validate code, generate documentation
+$ make all
+						</code></pre>
+
+                        <aside class="notes">
+                            - Dermed fikk vi en mye enklere måte å kjøre tester o.l.
+                        </aside>
+					</section>
+
+					<section>
+						<h2>Projects</h2>
+
+						<pre>
+repositories
+├── myapi
+│   ├── docker-compose.yml
+│   ├── Dockerfile
+│   ├── Makefile
+│   └── ...
+└── mywebapp
+    ├── docker-compose.yml
+    ├── Dockerfile
+    ├── Makefile
+    └── ...
+						</pre>
+
+
+                        <aside class="notes">
+                            - I vårt eksempel her har vi to repositories
+                              - Et API repository
+                              - Et webapp repository
+                            - Begge har hver sitt sett med docker-compose, Dockerfile og Makefile
+                            - Det gjør at vi kan bygge docker images for hver av disse og kjøre de i
+                              separate containere
+                        </aside>
+					</section>
+
+					<section>
+						<h2>Environment configuration</h2>
+						<pre>
+repositories
+├── myapi
+│   └── ...
+├── mywebapp
+│   └── ...
+└── myenvironments
+    ├── Makefile
+    ├── local
+    │   └── docker-compose.yml
+    ├── develop
+    │   └── docker-compose.yml
+    ├── test
+    │   └── docker-compose.yml
+    └── production
+        └── docker-compose.yml
+						</pre>
+
+                        <aside class="notes">
+                            - Kjøre opp både API og webapp samtidig, har vi et ekstra Git 
+                              repository som inneholder konfigurasjon for alle miljøer
+                            - Her har vi konfigurasjon for local, develop, test, og production
+                        </aside>
+					</section>
+
+					<section>
+						<h2>Local docker-compose.yml</h2>
+						<pre><code>myapi:
+  build: ../../myapi
+  ...
+mywebapp:
+  build: ../../mywebapp
+  ...
+database:
+  image: postgres:9.4
+  ...
+elasticsearch:
+  image: elasticsearch:2.3
+  ...
+nginx:
+  image: nginx:1.8
+  ...</code></pre>
+
+                        <aside class="notes">
+                            - Her er nedstrippet eksempel på docker-compose fil for kjøring lokalt når man
+                              utvikler
+                            - En stor fordel her er at alle utviklere kan kjøre opp hele systemet lokalt på
+                              sin PC, og konfigurasjonen er lik for alle - veldig verdifullt, unngår 
+                              forskjeller i oppsett
+                            - Alt kjører i isolerte kontainere, så man unngår at ulikheter i oppsett på
+                              PCene påvirker systemet
+                            - Ser at denne refererer til de andre repositoriene, slik at når man endrer noe
+                              der, vil dette reflekteres i de kjørende containerne
+                        </aside>
+					</section>
+
+				</section>
+
+				<section>
+
+					<section>
+						<h2>Build pipeline</h2>
+
+                        <aside class="notes">
+                            - Vi har så langt tatt for oss hvordan vi jobber med Docker lokalt
+                            - Hvordan kan vi sette opp en build pipeline med Docker?
+                            - Vi vil jo at det skal kjøres tester og bygges nye versjoner når ny kode
+                              pushes til Git
+                        </aside>
+					</section>
+
+					<section>
+						<h2>Build pipeline</h2>
+						<img src="images/build-pipeline.png" style="background-color:white" />
+
+                        <aside class="notes">
+                            - Til dette kan man egentlig bruke en hvilkensomhelst byggeserver, f.eks.
+                              Jenkins
+                            - Vi kan sette opp Jenkins slik at når det pushes ny kode til en branch, blir
+                              det trigget en byggejobb som bygger Docker images basert på Dockerfile i
+                              prosjektet
+                            - Vi vil i tillegg at det kjøres tester og at images blir tatt vare på hvis
+                              testene er ok
+                            - For å ta vare på images som er bygget, kan man sette opp et Docker registry
+                              og la Jenkins pushe images dit
+                        </aside>
+					</section>
+
+					<section>
+						<h2>Setting up Jenkins and Docker registry</h2>
+						<pre><code class="json"># docker-compose.yml
+
+jenkins:
+  image: jenkins
+  links:
+    - registry
+  volumes:
+    - /home/jenkins/:/var/jenkins_home
+  ports:
+    - "8080:8080"
+registry:
+  image: registry:2.0
+  volumes:
+    - /home/registry:/tmp/registry-dev
+  ports:
+    - "5000:5000"</code></pre>
+
+                        <aside class="notes">
+                            - Det finnes Docker images for både Jenkins og Registry på Docker Hub
+                            - Dermed veldig enkelt å sette opp både Jenkins og Registry med en
+                              docker-compose fil
+                            - Du vil typisk legge denne fila i et Git repository og klone repoet på en
+                              server hvor Docker er installert
+                            - Da er det bare å kjøre docker-compose up, så har du alt oppe å kjøre på få
+                              sekunder
+                        </aside>
+					</section>
+
+					<section>
+						<h2>Build jobs</h2>
+						<img src="images/jenkins-build-jobs.png" style="background-color:white" />
+
+                        <aside class="notes">
+                            - Byggejobbene blir gjerne litt avhengig av hvilke branch strategi man har
+                            - Hvis du følger Git flow, har du typisk en develop og en master branch, hvor
+                              master branch alltid skal være klar for produksjon
+                            - Da kan du sette opp ulike byggejobber for develop og master, og i tillegg en
+                              generell byggejobb for feature-brancher
+                        </aside>
+					</section>
+
+					<section>
+						<h2>Simple build script</h2>
+						<pre><code>#!/bin/bash 
+
+# Build image, run tests, and generate documentation
+make all
+
+# Where to push image
+IMAGE_PATH=localhost:5000/myapi:master-$BUILD_NUMBER
+
+# Push the image to our Docker registry
+docker tag myapi:latest $IMAGE_PATH
+docker push $IMAGE_PATH</code></pre>
+
+                        <aside class="notes">
+                            - Jenkins har plugins for å bygge og publisere Docker images, men det er nesten
+                              vel så enkelt å gjøre det med et script
+                            - Dette er alt vi trenger å gjøre
+                            - Vi har allerede en make all target som bygger, kjører tester osv. som vi
+                              bruker ved utvikling lokalt
+                            - Denne kan vi gjenbruke her
+                            - Til slutt må vi kjøre docker tag for å tagge imaget vi har bygget, og docker
+                              push for å publisere imaget i Registry
+                            - Ser at vi bruker branch og byggenummer som tag på imagene
+                            - Her har vi hardkodet image og branch for hver jobb. For å gjøre det mer
+                              generelt, kan man bruke navnet på byggejobben og byggenummer som tag. Da kan
+                              man gjenbruke samme script for alle jobbene.
+                        </aside>
+					</section>
+
+					<section>
+						<h2>List tags in registry</h2>
+						<pre><code>
+$ curl http://localhost:5000/v2/myapi/tags/list
+{
+    "name": "myapi",
+    "tags": [
+        "master-1", 
+        "master-2",
+        "develop-3",
+        "develop-4",
+        ...
+    ]
+}
+                        </code></pre>
+
+                        <aside class="notes">
+                            - Registryet har et enkelt API som kan brukes for å liste alle tags for et
+                              image
+                        </aside>
+					</section>
+
+				</section>
+				<section>
+
+					<section>
+						<h2>Deployment</h2>
+					</section>
+
+					<section>
+						<h2>Deployment job</h2>
+						<img src="images/jenkins-jobs.png" />
+
+                        <aside class="notes">
+                            - Hvis vi oppretter en deployment jobb, så kan vi bruke registryet sitt API
+                              til å hente ut en liste over alle tags, og legge listen i en nedtrekksliste
+                            - Ved deployment kan man da velge miljø og versjon som skal deployes
+                            - Denne jobben kan man også trigge automatisk rett etter at nye images har
+                              blitt bygget
+                        </aside>
+					</section>
+
+					<section>
+						<h2>Choose environment and version</h2>
+						<img src="images/jenkins-deploy-job.png" />
+
+                        <aside class="notes">
+                            - Slik ser deployment-jobben ut i Jenkins
+                            - Kan velge miljø og image tag fra nedtrekkslister
+                            - Listen over image tags blir populert ved å gjøre et API-kall mot registry
+                        </aside>
+					</section>
+
+					<section>
+						<h2>The deployment approach</h2>
+						<img src="images/deployment.png" style="background-color:white" />
+
+                        <aside class="notes">
+                            - Vi valgte en svært enkel strategi til å begynne med
+                            - Visste at i starten kom vi til å ha kun en håndfull brukere, og det var
+                              viktigst å levere noe kjørbart raskt
+                            - Ønsket ikke å introdusere unødvendig kompleksitet
+                            - Vi har oppsett for alle miljøene i docker-compose filer i et Git repo, som
+                              beskrevet tidligere
+                            - Klonet dette repoet på en server hvor Docker er installert
+                            - Har en jenkins job hvor man kan velge hvilket miljø man vil deploye til,
+                              samt hvilket image man vil deploye
+                            - For hver deployment så tar deploy-jobben og:
+                              - Kobler til serveren
+                              - Setter inn ny image tag i docker-compose filen for valgt miljø
+                              - Starter servicen på nytt
+                            - Punkt 1, 2, og 3 har vi allerede vært igjennom
+                            - Deretter oppdaterer Jenkins image tag i docker-compose filen for valgt miljø
+                              og starter på nytt
+                            - Ved restart hentes det nye imaget fra Registry
+                            - Man kan sette Jenkins til å automatisk trigge deployment etter at image har
+                              blitt pushet til registry - vi har gjort dette for develop-miljøet
+                        </aside>
+					</section>
+
+					<section>
+						<h2>What we have achieved</h2>
+						<ul>
+							<li>Simple continuous delivery pipeline with little effort</li>
+							<li>Isolation of services, leading to clean separation</li>
+							<li>Can easily reproduce the entire system on any server or PC where Docker is installed</li>
+							<li>As the system is containerized, it will be a lot easier to scale when that time comes</li>
+						</ul>
+					</section>
+
+					<section>
+						<h2>Still room for improvement</h2>
+						<ul>
+							<li>Services are unavailable for a few seconds on deployment</li>
+							<li>No multi-host scaling of containers</li>
+							<li>No automatic failover if server crashes</li>
+						</ul>
+                        <p>But this is often "good enough" for non-critical systems, or during the initial project phase</p>
+					</section>
+
+					<section>
+						<h2>Taking things further</h2>
+						<ul>
+							<li>Docker Swarm</li>
+							<li>Kubernetes (Google)</li>
+							<li>Apache Mesos</li>
+							<li>Cloud providers</li>
+						</ul>
+
+                        <aside class="notes">
+                            - Etterhvert som systemet vokser og får mer trafikk, og man trenger skalering,
+                              failover osv. så finnes det løsninger for det
+                            - Docker Swarm er dockers egen løsning for clustering av containere. Her kan
+                              man slå sammen flere docker hosts til et virtuelt cluster, og kommunisere
+                              med én master node for å kjøre kommandoer.
+                        </aside>
+					</section>
+
+					<section>
+						<h2>Docker Universal Control Plane</h2>
+						<img src="images/docker-ucp.png" />
+
+                        <aside class="notes">
+                            - Docker har også en egen løsning for deployment
+                            - Da får du et web-gui hvor du kan deploye og administrere containere
+                            - Må betale lisens for å bruke denne løsningen - er bl.a. slik Docker tjener
+                              penger
+                        </aside>
+					</section>
+				</section>
+
+				<section>
+					<h2>Questions?</h2>
+				</section>
+
+			</div>
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+
+			// Full list of configuration options available at:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+
+				transition: 'slide', // none/fade/slide/convex/concave/zoom
+
+				// Optional reveal.js plugins
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true },
+					{ src: 'plugin/notes/notes.js', async: true }
+				]
+			});
+
+		</script>
+
+	</body>
+</html>
