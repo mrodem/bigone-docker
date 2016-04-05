@@ -296,72 +296,6 @@ myapi_db_1      postgres             Up        5432/tcp
 					</section>
 
 					<section>
-						<h2>Running custom commands</h2>
-
-						<pre><code>
-# Syntax
-# docker-compose run &lt;service&gt; &lt;command&gt;
-
-# Run tests
-$ docker-compose run myapi run_tests.sh
-[...]
-Ran 17 tests in 0.009s
-						</code></pre>
-
-                        <aside class="notes">
-                            - Når du sitter og utvikler lokalt, vil du av og til kjøre andre kommandoer enn
-                              det som er definert som default i Dockerfile
-                            - For eksempel vil du kjøre en test-kommando for å kjøre enhetstester
-                            - Dette kan man gjøre ved å slenge på kommandoen bak docker-compose run, slik som 
-                              gjort her
-                        </aside>
-					</section>
-
-					<section>
-						<h2>Makefile for convenience</h2>
-
-						<pre><code class="makefile"># Makefile
-
-run:
-    docker-compose up -d
-
-tests: 
-    docker-compose run myapi run_tests.sh
-
-erdiagram:
-    docker-compose run myapi generate_diagram.sh
-
-validation:
-    docker-compose run myapi validate_code.sh
-
-all: tests validation erdiagram</code></pre>
-
-                        <aside class="notes">
-                            - Vi ble fort lei av å skrive disse kommandoene manuelt, så vi laget oss en
-                              Makefile med de mest vanlige kommanoene
-                        </aside>
-					</section>
-
-					<section>
-						<h2>Simple command interface</h2>
-
-						<pre><code>
-# Run the application
-$ make run
-
-# Run tests
-$ make tests
-
-# Run tests, validate code, generate documentation
-$ make all
-						</code></pre>
-
-                        <aside class="notes">
-                            - Dermed fikk vi en mye enklere måte å kjøre tester o.l.
-                        </aside>
-					</section>
-
-					<section>
 						<h2>Projects</h2>
 
 						<pre>
@@ -369,12 +303,10 @@ repositories
 ├── myapi
 │   ├── docker-compose.yml
 │   ├── Dockerfile
-│   ├── Makefile
 │   └── ...
 └── mywebapp
     ├── docker-compose.yml
     ├── Dockerfile
-    ├── Makefile
     └── ...
 						</pre>
 
@@ -398,7 +330,6 @@ repositories
 ├── mywebapp
 │   └── ...
 └── myenvironments
-    ├── Makefile
     ├── local
     │   └── docker-compose.yml
     ├── develop
