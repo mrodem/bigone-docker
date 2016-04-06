@@ -101,9 +101,6 @@ RUN pip install gunicorn Flask
 # Add our own code to the image
 ADD . /code
 
-# The port where our application is listening
-EXPOSE 80
-
 # Run the application
 CMD ["bin/start.sh"]</code></pre>
 
