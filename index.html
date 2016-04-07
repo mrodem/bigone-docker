@@ -73,14 +73,27 @@
 					</section>
 
 					<section>
+						<h2>Images and containers</h2>
+						<ul>
+							<li>Docker containers are based on Docker images</li>
+							<li>When starting up an image, you get a running container</li>
+							<li>A process running inside the container is isolated from the underlying host</li>
+						</ul>
+
+                        <aside class="notes">
+                            - En container er alltid basert på et image
+                            - Veldig enkelt kan man si at et image kan sammenlignes med en kjørbar fil som
+                              ligger på filsystemet
+                            - Starter man et image, får man en kjørende container
+                            - En prosess som kjører i containeren vet ingenting om den underliggende hosten
+                        </aside>
+					</section>
+
+					<section>
 						<h2>Docker Hub</h2>
 						<img src="images/docker-hub.png" />
 
                         <aside class="notes">
-                            - For å kunne starte en container, må man ha et image
-                            - Veldig enkelt kan man si at et image kan sammenlignes med en kjørbar fil som
-                              ligger på filsystemet
-                            - Starter man et image, får man en container med en prosess som kjører inni
                             - Man kan finne mange ferdige images på Docker Hub
                               - Hostet av Docker
                               - Alle kan pushe og pulle images herfra
